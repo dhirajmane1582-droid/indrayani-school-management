@@ -76,6 +76,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
   const [activeTab, setActiveTab] = useState<'home' | 'homework' | 'exams' | 'results' | 'attendance' | 'notices'>('home');
   const [isDownloading, setIsDownloading] = useState(false);
   
+  // Notification State using keys specific to current student
   const [seenResultIds, setSeenResultIds] = useState<string[]>(() => {
     const saved = localStorage.getItem(`seen_results_${currentUser.linkedStudentId}`);
     return saved ? JSON.parse(saved) : [];
@@ -84,8 +85,18 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
     const saved = localStorage.getItem(`seen_homework_${currentUser.linkedStudentId}`);
     return saved ? JSON.parse(saved) : [];
   });
+  const [annualSeen, setAnnualSeen] = useState<boolean>(() => {
+    const saved = localStorage.getItem(`seen_annual_${currentUser.linkedStudentId}`);
+    return saved === 'true';
+  });
   
   const student = useMemo(() => students.find(s => s.id === currentUser.linkedStudentId), [students, currentUser]);
+
+  const studentAnnualRecord = useMemo(() => {
+    if (!student) return null;
+    const r = annualRecords.find(rec => rec.studentId === student.id);
+    return (r && r.published) ? r : null;
+  }, [annualRecords, student]);
 
   const relevantHomework = useMemo(() => {
     if (!student) return [];
@@ -105,17 +116,47 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
     return studentResults.some(r => !seenResultIds.includes(r.id));
   }, [studentResults, seenResultIds]);
 
+  const hasNewAnnual = useMemo(() => {
+    return !!studentAnnualRecord && !annualSeen;
+  }, [studentAnnualRecord, annualSeen]);
+
+  // Observer Effect: Mark items as seen when relevant tab is active
+  useEffect(() => {
+    if (activeTab === 'results') {
+      // Mark annual results seen
+      if (studentAnnualRecord && !annualSeen) {
+        setAnnualSeen(true);
+        localStorage.setItem(`seen_annual_${currentUser.linkedStudentId}`, 'true');
+      }
+      
+      // Mark standard results seen
+      if (studentResults.length > 0) {
+        const allResultIds = studentResults.map(r => r.id);
+        const isAnythingNew = allResultIds.some(id => !seenResultIds.includes(id));
+        if (isAnythingNew) {
+          const updated = Array.from(new Set([...seenResultIds, ...allResultIds]));
+          setSeenResultIds(updated);
+          localStorage.setItem(`seen_results_${currentUser.linkedStudentId}`, JSON.stringify(updated));
+        }
+      }
+    }
+    
+    if (activeTab === 'homework' && relevantHomework.length > 0) {
+      const allHwIds = relevantHomework.map(h => h.id);
+      const isAnythingNew = allHwIds.some(id => !seenHomeworkIds.includes(id));
+      if (isAnythingNew) {
+        const updated = Array.from(new Set([...seenHomeworkIds, ...allHwIds]));
+        setSeenHomeworkIds(updated);
+        localStorage.setItem(`seen_homework_${currentUser.linkedStudentId}`, JSON.stringify(updated));
+      }
+    }
+  }, [activeTab, studentResults, relevantHomework, studentAnnualRecord, annualSeen, currentUser.linkedStudentId]);
+
   const studentExams = useMemo(() => {
       if (!student) return [];
       return exams.filter(e => e.className === student.className && e.published && e.timetable && e.timetable.length > 0)
                   .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [exams, student]);
-
-  const studentAnnualRecord = useMemo(() => {
-      if (!student) return null;
-      const r = annualRecords.find(rec => rec.studentId === student.id);
-      return (r && r.published) ? r : null;
-  }, [annualRecords, student]);
 
   const attendanceStats = useMemo(() => {
       if (!student) return { present: 0, total: 0, percentage: 0 };
@@ -148,26 +189,15 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
   const handleTabChange = (tab: typeof activeTab) => {
     setActiveTab(tab);
-    if (tab === 'results') {
-      const allResultIds = studentResults.map(r => r.id);
-      const updated = Array.from(new Set([...seenResultIds, ...allResultIds]));
-      setSeenResultIds(updated);
-      localStorage.setItem(`seen_results_${currentUser.linkedStudentId}`, JSON.stringify(updated));
-    } else if (tab === 'homework') {
-      const allHwIds = relevantHomework.map(h => h.id);
-      const updated = Array.from(new Set([...seenHomeworkIds, ...allHwIds]));
-      setSeenHomeworkIds(updated);
-      localStorage.setItem(`seen_homework_${currentUser.linkedStudentId}`, JSON.stringify(updated));
-    }
   };
 
   const handleDownloadPDF = async () => {
     if (!student || !studentAnnualRecord) return;
     setIsDownloading(true);
 
-    const exporter = (html2pdf as any).default || html2pdf;
-    if (typeof exporter !== 'function') {
-        console.error("html2pdf function resolution failed.");
+    const h2p = (html2pdf as any).default || html2pdf;
+    if (typeof h2p !== 'function') {
+        console.error("html2pdf library resolution failed.");
         setIsDownloading(false);
         return;
     }
@@ -275,7 +305,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
     };
 
     try {
-        await exporter().set(opt).from(element).save();
+        await h2p().set(opt).from(element).save();
     } catch (err) {
         console.error("PDF Export Error:", err);
     } finally {
@@ -327,7 +357,16 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
     const modules = [
         { id: 'homework', label: 'My Homework', desc: `${relevantHomework.length} assignments`, icon: BookOpen, color: 'bg-indigo-600', badgeColor: 'bg-rose-500', isNew: hasNewHomework },
         { id: 'exams', label: 'Exam Schedule', desc: 'Upcoming tests', icon: CalendarCheck, color: 'bg-purple-600' },
-        { id: 'results', label: 'Report Cards', desc: 'Marks & Results', icon: FileBadge, color: 'bg-amber-600', badgeColor: 'bg-emerald-500', isNew: hasNewResults },
+        { 
+          id: 'results', 
+          label: 'Report Cards', 
+          desc: 'Marks & Results', 
+          icon: FileBadge, 
+          color: 'bg-amber-600', 
+          // Prioritize Blue for Annual, then Green for Exam results
+          badgeColor: hasNewAnnual ? 'bg-blue-600' : 'bg-emerald-500', 
+          isNew: hasNewAnnual || hasNewResults 
+        },
         { id: 'attendance', label: 'Attendance', desc: `${attendanceStats.percentage}% presence`, icon: UserCheck, color: 'bg-emerald-600' },
         { id: 'notices', label: 'Notice Board', desc: 'School updates', icon: Bell, color: 'bg-rose-600' },
     ];
@@ -341,7 +380,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 <div>
                     <h2 className="text-lg font-black text-slate-800">{student.name}</h2>
                     <div className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                        Roll {student.rollNo} • {student.className} ({student.medium || 'English'})
+                        Roll {student.rollNo} • {student.className} ({(student.medium || 'English')})
                     </div>
                 </div>
             </div>
@@ -353,7 +392,11 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                         onClick={() => handleTabChange(item.id as any)}
                         className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 hover:shadow-lg hover:border-emerald-200 transition-all text-left group flex flex-col justify-between min-h-[140px] sm:min-h-[160px] relative active:scale-95"
                     >
-                        {item.isNew && <span className={`absolute top-3 right-3 ${item.badgeColor} text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase shadow-sm ring-2 ring-white animate-pulse`}>(NEW)</span>}
+                        {item.isNew && (
+                          <span className={`absolute top-3 right-3 ${item.badgeColor} text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase shadow-sm ring-2 ring-white animate-pulse`}>
+                            (NEW)
+                          </span>
+                        )}
                         <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-white mb-4 ${item.color} shadow-lg transition-transform group-hover:scale-110`}>
                             <item.icon size={20} className="sm:w-6 sm:h-6" />
                         </div>
@@ -463,7 +506,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                           <h3 className="text-3xl font-black tracking-tighter mb-1">SESSION 2024-25</h3>
                           <div className="flex items-center gap-3 mt-4">
                               <div className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold uppercase">{student.className}</div>
-                              <div className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold uppercase">{student.medium || 'English'} Medium</div>
+                              <div className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold uppercase">{(student.medium || 'English')} Medium</div>
                           </div>
                       </div>
                   </div>
@@ -636,11 +679,13 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
       <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-3 flex justify-between items-center z-50 shadow-lg">
           <button onClick={() => handleTabChange('home')} className={`p-2 flex flex-col items-center gap-1 ${activeTab === 'home' ? 'text-emerald-700' : 'text-slate-400'}`}><LayoutDashboard size={20} /><span className="text-[9px] font-black uppercase">Home</span></button>
           <button onClick={() => handleTabChange('homework')} className={`p-2 flex flex-col items-center gap-1 ${activeTab === 'homework' ? 'text-emerald-700' : 'text-slate-400'} relative`}>
-            {hasNewHomework && <div className="absolute top-1 right-3 w-2 h-2 bg-rose-500 rounded-full border border-white"></div>}
+            {hasNewHomework && <div className="absolute top-1 right-3 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white animate-pulse"></div>}
             <BookOpen size={20} /><span className="text-[9px] font-black uppercase">Study</span>
           </button>
           <button onClick={() => handleTabChange('results')} className={`p-2 flex flex-col items-center gap-1 ${activeTab === 'results' ? 'text-emerald-700' : 'text-slate-400'} relative`}>
-            {hasNewResults && <div className="absolute top-1 right-3 w-2 h-2 bg-emerald-500 rounded-full border border-white"></div>}
+            {(hasNewResults || hasNewAnnual) && (
+              <div className={`absolute top-1 right-3 w-2.5 h-2.5 ${hasNewAnnual ? 'bg-blue-500' : 'bg-emerald-500'} rounded-full border-2 border-white animate-pulse`}></div>
+            )}
             <FileBadge size={20} /><span className="text-[9px] font-black uppercase">Marks</span>
           </button>
           <button onClick={() => handleTabChange('attendance')} className={`p-2 flex flex-col items-center gap-1 ${activeTab === 'attendance' ? 'text-emerald-700' : 'text-slate-400'}`}><UserCheck size={20} /><span className="text-[9px] font-black uppercase">Status</span></button>

@@ -1,106 +1,12 @@
 
-import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { Student, SPECIFIC_CLASSES, CustomFieldDefinition, User, SIMPLIFIED_CLASSES } from '../types';
-import { Plus, Trash2, Edit2, Phone, Search, Settings, X, GraduationCap, ChevronDown, MapPin, Calendar, Info, Key, UserCheck, ArrowUpFromLine, ArrowDownToLine, Loader2 } from 'lucide-react';
+import React, { useState, useMemo, useRef } from 'react';
+import { Student, CLASSES, SPECIFIC_CLASSES, CustomFieldDefinition, User } from '../types';
+import { Plus, Search, Filter, Download, FileSpreadsheet, Edit2, Trash2, X, GraduationCap, MapPin, Phone, Calendar, Info, Settings, ShieldCheck, UserPlus, ChevronDown, Upload, FileDown, AlertCircle, CheckCircle2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
-
-// Optimize high-frequency components
-const StudentRow = React.memo(({ 
-    student, 
-    isExpanded, 
-    onToggle, 
-    onEdit, 
-    onDelete, 
-    credentials 
-}: { 
-    student: Student, 
-    isExpanded: boolean, 
-    onToggle: (id: string) => void, 
-    onEdit: (s: Student) => void, 
-    onDelete: (id: string, e: any) => void,
-    credentials?: any
-}) => {
-    return (
-        <div className={`bg-white rounded-2xl border transition-all duration-200 ${isExpanded ? 'border-indigo-500 ring-4 ring-indigo-50 shadow-xl' : 'border-slate-200 shadow-sm active:scale-[0.99]'}`}>
-            <div 
-                onClick={() => onToggle(student.id)}
-                className="p-4 flex justify-between items-start cursor-pointer select-none"
-            >
-                <div className="flex gap-3 items-center">
-                    <div className={`w-11 h-11 rounded-full flex items-center justify-center font-black text-xs border transition-colors ${isExpanded ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-indigo-50 text-indigo-600 border-indigo-100'}`}>
-                        {student.rollNo}
-                    </div>
-                    <div className="overflow-hidden">
-                        <div className="font-bold text-slate-800 leading-tight truncate pr-2">{student.name}</div>
-                        <div className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">{student.className} • {student.medium || 'English'}</div>
-                        <div className="text-[11px] font-mono text-indigo-600 font-bold mt-1 flex items-center gap-1">
-                            <Phone size={10}/> {student.phone}
-                        </div>
-                    </div>
-                </div>
-                <div className="flex items-center gap-2 pt-1">
-                    <ChevronDown size={18} className={`text-slate-300 transition-transform duration-300 ${isExpanded ? 'rotate-180 text-indigo-500' : ''}`} />
-                </div>
-            </div>
-
-            {isExpanded && (
-                <div className="px-4 pb-5 pt-1 border-t border-slate-50 animate-in slide-in-from-top-4 duration-300">
-                    <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-2 mt-2">
-                            <a href={`tel:${student.phone}`} className="flex items-center justify-center gap-2 bg-indigo-50 text-indigo-700 py-3 rounded-xl border border-indigo-100 text-xs font-black uppercase">
-                                <Phone size={14}/> Call Now
-                            </a>
-                            <button 
-                                onClick={() => onEdit(student)}
-                                className="flex items-center justify-center gap-2 bg-slate-800 text-white py-3 rounded-xl text-xs font-black uppercase"
-                            >
-                                <Edit2 size={14}/> Edit Profile
-                            </button>
-                        </div>
-
-                        <div className="bg-slate-50 p-4 rounded-xl space-y-3">
-                            <div className="flex items-start gap-3">
-                                <MapPin size={16} className="text-slate-400 mt-0.5 shrink-0" />
-                                <div>
-                                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Address</div>
-                                    <div className="text-sm text-slate-700 leading-relaxed font-medium">{student.address || 'Not Provided'}</div>
-                                </div>
-                            </div>
-                            <div className="flex items-start gap-3">
-                                <Calendar size={16} className="text-slate-400 mt-0.5 shrink-0" />
-                                <div>
-                                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Birth Details</div>
-                                    <div className="text-sm text-slate-700 font-medium">{student.dob || 'Unknown DOB'} {student.placeOfBirth ? ` • ${student.placeOfBirth}` : ''}</div>
-                                </div>
-                            </div>
-                            {credentials && (
-                                <div className="mt-4 bg-slate-900 text-slate-400 p-3 rounded-xl border border-slate-800">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <Key size={14} className="text-indigo-400"/>
-                                            <div className="text-[10px] font-black uppercase tracking-widest">Portal Access</div>
-                                        </div>
-                                        <div className="text-[10px] font-mono select-all">UID: {credentials.username} / PASS: {credentials.password}</div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                        <button 
-                            onClick={(e) => onDelete(student.id, e)}
-                            className="w-full py-3 bg-rose-50 border border-rose-100 text-rose-600 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 mt-2"
-                        >
-                            <Trash2 size={14}/> Remove Student Profile
-                        </button>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}, (prev, next) => prev.isExpanded === next.isExpanded && prev.student === next.student);
 
 interface StudentManagerProps {
   students: Student[];
-  setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
+  setStudents: (val: React.SetStateAction<Student[]>) => void;
   customFieldDefs: CustomFieldDefinition[];
   setCustomFieldDefs: React.Dispatch<React.SetStateAction<CustomFieldDefinition[]>>;
   users: User[];
@@ -111,277 +17,299 @@ interface StudentManagerProps {
 const StudentManager: React.FC<StudentManagerProps> = ({ 
   students, 
   setStudents, 
-  customFieldDefs,
+  customFieldDefs, 
   setCustomFieldDefs,
   users,
   setUsers,
   currentUser
 }) => {
-  const [selectedSpecificClass, setSelectedSpecificClass] = useState('');
-  const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isFieldManagerOpen, setIsFieldManagerOpen] = useState(false);
-  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // High-performance list state
-  const [visibleCount, setVisibleCount] = useState(25);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  // Form State
-  const [name, setName] = useState('');
-  const [rollNo, setRollNo] = useState('');
-  const [formClassName, setFormClassName] = useState('');
-  const [dob, setDob] = useState('');
-  const [placeOfBirth, setPlaceOfBirth] = useState('');
-  const [phone, setPhone] = useState('');
-  const [alternatePhone, setAlternatePhone] = useState('');
-  const [address, setAddress] = useState('');
-  const [medium, setMedium] = useState<'English' | 'Semi'>('English');
-  const [customValues, setCustomValues] = useState<Record<string, string>>({});
-  const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
+  const [filterSpecificClass, setFilterSpecificClass] = useState('');
+  const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const generateId = useCallback((studentName: string, studentDob: string) => {
-      const nameParts = studentName.trim().split(/\s+/);
-      const first = nameParts[0].toLowerCase().replace(/[^a-z0-9]/g, '');
-      const last = nameParts.length > 1 ? nameParts[nameParts.length - 1].toLowerCase().replace(/[^a-z0-9]/g, '') : '';
-      const cleanDob = studentDob.replace(/[^0-9]/g, '');
-      const primaryId = `${first}${cleanDob || '00000000'}`;
-      const exists = students.some(s => s.id === primaryId && s.id !== editingStudent?.id);
-      return exists ? `${first}${last}${cleanDob || '00000000'}` : primaryId;
-  }, [students, editingStudent]);
+  const [toast, setToast] = useState<{msg: string, type: 'success' | 'error' | 'info'} | null>(null);
 
-  const generateInitialPassword = (studentName: string) => {
-      const initials = studentName.split(/\s+/).map(p => p[0]?.toLowerCase() || '').join('');
-      const rand = Math.floor(100 + Math.random() * 900);
-      return `${initials}${rand}`;
-  };
+  // Form State
+  const [formData, setFormData] = useState<Partial<Student>>({
+    name: '',
+    rollNo: '',
+    className: 'Class 1',
+    medium: 'English',
+    dob: '',
+    placeOfBirth: '',
+    address: '',
+    phone: '',
+    alternatePhone: '',
+    customFields: {}
+  });
+
+  // Settings State for Custom Field Definition
+  const [newFieldName, setNewFieldName] = useState('');
 
   const filteredStudents = useMemo(() => {
-    let result = students;
-    if (selectedSpecificClass) {
-        const [className, classMedium] = selectedSpecificClass.split('|');
-        result = result.filter(s => s.className === className && (s.medium || 'English') === classMedium);
-    }
-    if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        result = result.filter(s => s.name.toLowerCase().includes(q) || s.rollNo.includes(q));
-    }
-    return result.sort((a, b) => (parseInt(a.rollNo) || 0) - (parseInt(b.rollNo) || 0));
-  }, [students, selectedSpecificClass, searchQuery]);
-
-  // Infinite scroll logic for DOM performance
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!scrollRef.current) return;
-      const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
-      if (scrollTop + clientHeight >= scrollHeight - 300) {
-        setVisibleCount(prev => Math.min(prev + 25, filteredStudents.length));
+    return students.filter(s => {
+      const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.rollNo.includes(searchQuery);
+      let matchesClass = true;
+      if (filterSpecificClass) {
+          const [cls, med] = filterSpecificClass.split('|');
+          matchesClass = s.className === cls && (s.medium || 'English') === med;
       }
+      return matchesSearch && matchesClass;
+    }).sort((a, b) => (parseInt(a.rollNo) || 0) - (parseInt(b.rollNo) || 0));
+  }, [students, searchQuery, filterSpecificClass]);
+
+  const showToast = (msg: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  const validateStudent = (s: Partial<Student>): { valid: boolean, errors: string[] } => {
+    const errors: string[] = [];
+    const nameRegex = /^[a-zA-Z0-9 .]+$/;
+    if (!s.name || !nameRegex.test(s.name)) {
+      errors.push("Name must be alphanumeric.");
+    }
+    const phoneRegex = /^\d{10}$/;
+    if (!s.phone || !phoneRegex.test(s.phone)) {
+      errors.push("Primary Phone must be 10 digits.");
+    }
+    if (!s.rollNo) errors.push("Roll Number is required.");
+    if (!s.className) errors.push("Class is required.");
+    return { valid: errors.length === 0, errors };
+  };
+
+  const handleInputChange = (field: keyof Student, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddStudent = (e: React.FormEvent) => {
+    e.preventDefault();
+    const { valid, errors } = validateStudent(formData);
+    if (!valid) {
+      alert(`Validation Errors:\n- ${errors.join('\n- ')}`);
+      return;
+    }
+
+    const newStudent: Student = {
+      id: formData.id || crypto.randomUUID(),
+      name: (formData.name || '').trim(),
+      rollNo: formData.rollNo || '',
+      className: formData.className || 'Class 1',
+      medium: formData.medium || 'English',
+      dob: formData.dob || '',
+      placeOfBirth: formData.placeOfBirth || '',
+      address: formData.address || '',
+      phone: formData.phone || '',
+      alternatePhone: formData.alternatePhone || '',
+      customFields: formData.customFields || {}
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [filteredStudents.length]);
 
-  // Reset visibility when search or class changes
-  useEffect(() => {
-    setVisibleCount(25);
-    window.scrollTo(0, 0);
-  }, [searchQuery, selectedSpecificClass]);
-
-  const visibleStudents = useMemo(() => filteredStudents.slice(0, visibleCount), [filteredStudents, visibleCount]);
-
-  const handleOpenModal = useCallback((student?: Student) => {
-    setErrors({});
-    if (student) {
-      setEditingStudent(student);
-      setName(student.name);
-      setRollNo(student.rollNo);
-      setFormClassName(student.className);
-      setDob(student.dob || '');
-      setPlaceOfBirth(student.placeOfBirth || '');
-      setPhone(student.phone || '');
-      setAlternatePhone(student.alternatePhone || '');
-      setAddress(student.address || '');
-      setMedium(student.medium || 'English');
-      setCustomValues(student.customFields || {});
-      const creds = users.find(u => u.linkedStudentId === student.id && u.role === 'student');
-      setPassword(creds ? creds.password : '');
+    if (formData.id) {
+      setStudents(prev => prev.map(s => s.id === formData.id ? newStudent : s));
+      showToast("Profile Updated", "success");
     } else {
-      setEditingStudent(null);
-      setName('');
-      setRollNo('');
-      setDob('');
-      setPlaceOfBirth('');
-      setPhone('');
-      setAlternatePhone('');
-      setAddress('');
-      setFormClassName(selectedSpecificClass ? selectedSpecificClass.split('|')[0] : 'Class 1');
-      setMedium(selectedSpecificClass ? (selectedSpecificClass.split('|')[1] as any) : 'English');
-      setCustomValues({});
-      setPassword('');
-    }
-    setIsModalOpen(true);
-  }, [selectedSpecificClass, users]);
-
-  const handleSave = () => {
-    const trimmedName = name.trim();
-    const trimmedRollNo = rollNo.trim();
-    const trimmedPhone = phone.trim();
-    const newErrors: Record<string, string> = {};
-
-    if (!trimmedName || trimmedName.split(/\s+/).length < 2) newErrors.name = "Full Name required.";
-    if (!formClassName) newErrors.className = "Class required.";
-    if (!trimmedRollNo) newErrors.rollNo = "Roll No required.";
-    if (!/^\d{10}$/.test(trimmedPhone)) newErrors.phone = "10-digit phone required.";
-
-    if (Object.keys(newErrors).length > 0) {
-        setErrors(newErrors);
-        return;
-    }
-
-    const studentId = generateId(trimmedName, dob);
-    const finalPassword = password || generateInitialPassword(trimmedName);
-
-    if (editingStudent) {
-      setStudents(prev => prev.map(s => s.id === editingStudent.id ? { 
-        ...s, id: studentId, name: trimmedName, rollNo: trimmedRollNo, className: formClassName,
-        dob, placeOfBirth, phone: trimmedPhone, alternatePhone, address, medium, customFields: customValues
-      } : s));
-      setUsers(prev => {
-          const ex = prev.find(u => u.linkedStudentId === editingStudent.id);
-          if (ex) return prev.map(u => u.id === ex.id ? { ...u, username: studentId, password: finalPassword } : u);
-          return [...prev, { id: crypto.randomUUID(), username: studentId, password: finalPassword, name: trimmedName, role: 'student', linkedStudentId: studentId }];
-      });
-    } else {
-      setStudents(prev => [...prev, { id: studentId, name: trimmedName, rollNo: trimmedRollNo, className: formClassName, dob, placeOfBirth, phone: trimmedPhone, alternatePhone, address, medium, customFields: customValues }]);
-      setUsers(prev => [...prev, { id: crypto.randomUUID(), username: studentId, password: finalPassword, name: trimmedName, role: 'student', linkedStudentId: studentId }]);
+      setStudents(prev => [...prev, newStudent]);
+      showToast("Admitted Successfully", "success");
     }
     setIsModalOpen(false);
+    resetForm();
   };
-  
-  const handleDelete = useCallback((id: string, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    if (window.confirm('Delete student and login credentials?')) {
+
+  const resetForm = () => {
+    setFormData({ name: '', rollNo: '', className: 'Class 1', medium: 'English', dob: '', placeOfBirth: '', address: '', phone: '', alternatePhone: '', customFields: {} });
+  };
+
+  const editStudent = (student: Student) => {
+    setFormData(student);
+    setIsModalOpen(true);
+  };
+
+  const deleteStudent = (id: string) => {
+    if (window.confirm('Permanently delete student?')) {
       setStudents(prev => prev.filter(s => s.id !== id));
       setUsers(prev => prev.filter(u => u.linkedStudentId !== id));
+      showToast("Record Deleted", "info");
     }
-  }, [setStudents, setUsers]);
-
-  const handleExportExcel = () => {
-    const exportData = students.map(s => ({
-        'Full Name': s.name, 'Roll No': s.rollNo, 'Class': s.className, 'Medium': s.medium || 'English',
-        'DOB': s.dob, 'Place of Birth': s.placeOfBirth || '', 'Phone': s.phone, 'Address': s.address,
-    }));
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Students');
-    XLSX.writeFile(workbook, `Students_Export.xlsx`);
   };
 
-  const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAddFieldDef = () => {
+    if (!newFieldName.trim()) return;
+    setCustomFieldDefs(prev => [...prev, { id: crypto.randomUUID(), label: newFieldName.trim() }]);
+    setNewFieldName('');
+  };
+
+  const downloadTemplate = () => {
+    const template = [{ 'Full Name': 'Rahul Patil', 'Roll No': '101', 'Class': 'Class 1', 'Medium': 'English', 'Phone': '9876543210' }];
+    const ws = XLSX.utils.json_to_sheet(template);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Template");
+    XLSX.writeFile(wb, "Import_Template.xlsx");
+  };
+
+  const handleBulkImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (event) => {
-      const data = new Uint8Array(event.target?.result as ArrayBuffer);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]) as any[];
-      const newStudents: Student[] = [];
-      const newUsers: User[] = [];
-      jsonData.forEach((row) => {
-        const name = row['Full Name'] || row['Name'];
-        if (!name) return;
-        const sid = generateId(name, String(row['DOB'] || ''));
-        newStudents.push({
-          id: sid, name, rollNo: String(row['Roll No'] || ''), className: row['Class'] || 'Class 1',
-          medium: row['Medium'] || 'English', dob: String(row['DOB'] || ''), phone: String(row['Phone'] || ''), address: String(row['Address'] || '')
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(ws);
+        const newBatch: Student[] = [];
+        data.forEach((row: any) => {
+          let cls = String(row['Class'] || 'Class 1');
+          if (!cls.startsWith('Class') && !['Nursery', 'Jr. KG', 'Sr. KG'].includes(cls)) {
+              cls = `Class ${cls}`;
+          }
+          const s: Student = {
+            id: crypto.randomUUID(),
+            name: String(row['Full Name'] || '').trim(),
+            rollNo: String(row['Roll No'] || ''),
+            className: cls,
+            medium: String(row['Medium'] || '').toLowerCase().includes('semi') ? 'Semi' : 'English',
+            phone: String(row['Phone'] || '').replace(/\D/g, ''),
+            dob: String(row['DOB'] || ''),
+            address: String(row['Address'] || ''),
+            customFields: {}
+          };
+          if (s.name && s.phone.length === 10) newBatch.push(s);
         });
-        newUsers.push({ id: crypto.randomUUID(), username: sid, password: generateInitialPassword(name), name, role: 'student', linkedStudentId: sid });
-      });
-      setStudents(prev => [...prev, ...newStudents]);
-      setUsers(prev => [...prev, ...newUsers]);
-      alert(`Imported ${newStudents.length} students.`);
+        if (newBatch.length) {
+          setStudents(prev => [...prev, ...newBatch]);
+          showToast(`Imported ${newBatch.length} Students`, 'success');
+        }
+      } catch (err) { showToast("Import Failed", "error"); }
     };
-    reader.readAsArrayBuffer(file);
+    reader.readAsBinaryString(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <input type="file" ref={fileInputRef} onChange={handleImportExcel} accept=".xlsx, .xls" className="hidden" />
+    <div className="space-y-6 animate-fade-up">
+      {toast && (
+        <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-top-4 border ${
+          toast.type === 'success' ? 'bg-emerald-600 text-white border-emerald-400' : 
+          toast.type === 'error' ? 'bg-rose-600 text-white border-rose-400' : 'bg-slate-800 text-white border-slate-700'
+        }`}>
+          {toast.type === 'success' ? <CheckCircle2 size={20}/> : <AlertCircle size={20}/>}
+          <span className="text-sm font-bold uppercase tracking-wider">{toast.msg}</span>
+        </div>
+      )}
 
-      <div className="bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-slate-200">
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-              <div><h2 className="text-lg sm:text-xl font-bold text-slate-800">Students</h2><p className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Management & Admissions ({filteredStudents.length} Records)</p></div>
-              <div className="flex items-center gap-2">
-                  <button onClick={handleExportExcel} className="w-10 h-10 rounded-xl bg-white border border-slate-200 text-indigo-600 flex items-center justify-center hover:bg-slate-50 transition-all"><ArrowUpFromLine size={20} /></button>
-                  <button onClick={() => fileInputRef.current?.click()} className="w-10 h-10 rounded-xl bg-white border border-slate-200 text-emerald-600 flex items-center justify-center hover:bg-slate-50 transition-all"><ArrowDownToLine size={20} /></button>
-                  <button onClick={() => handleOpenModal()} className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-all ml-1"><Plus size={24} /></button>
-              </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} /><input type="text" placeholder="Search thousands of students..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500" /></div>
-              <select value={selectedSpecificClass} onChange={(e) => setSelectedSpecificClass(e.target.value)} className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500">
-                  <option value="">All Classes</option>
-                  {SPECIFIC_CLASSES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-              </select>
-          </div>
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col lg:flex-row gap-4 items-center justify-between">
+        <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+            <div className="relative flex-1 sm:w-72">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <input type="text" placeholder="Search name or roll no..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none transition-all" />
+            </div>
+            <div className="relative">
+                <select value={filterSpecificClass} onChange={(e) => setFilterSpecificClass(e.target.value)}
+                    className="appearance-none pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none cursor-pointer">
+                    <option value="">All Mediums & Classes</option>
+                    {SPECIFIC_CLASSES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                </select>
+                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={14} />
+            </div>
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto no-scrollbar pb-1">
+            <button onClick={downloadTemplate} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 text-[10px] font-black uppercase tracking-widest whitespace-nowrap"><FileDown size={16} /> Template</button>
+            <button onClick={() => fileInputRef.current?.click()} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-xl hover:bg-indigo-100 text-[10px] font-black uppercase tracking-widest whitespace-nowrap"><Upload size={16} /> Import<input type="file" ref={fileInputRef} onChange={handleBulkImport} accept=".xlsx,.xls,.csv" className="hidden" /></button>
+            <button onClick={() => setIsSettingsOpen(true)} className="p-2.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition-all"><Settings size={20} /></button>
+            <button onClick={() => { resetForm(); setIsModalOpen(true); }} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-100 whitespace-nowrap"><UserPlus size={18} /> Admit</button>
         </div>
       </div>
 
-      <div className="space-y-3">
-         {visibleStudents.length === 0 ? (
-            <div className="bg-white p-12 text-center text-slate-400 rounded-2xl border border-dashed border-slate-200">No students found matching your criteria.</div>
-         ) : (
-            <>
-                {visibleStudents.map(student => (
-                    <StudentRow 
-                        key={student.id} 
-                        student={student} 
-                        isExpanded={expandedStudentId === student.id}
-                        onToggle={setExpandedStudentId}
-                        onEdit={handleOpenModal}
-                        onDelete={handleDelete}
-                        credentials={users.find(u => u.linkedStudentId === student.id && u.role === 'student')}
-                    />
-                ))}
-                {visibleCount < filteredStudents.length && (
-                    <div className="py-8 flex flex-col items-center text-slate-400 gap-2">
-                        <Loader2 className="animate-spin" size={20} />
-                        <span className="text-xs font-bold uppercase tracking-widest">Loading more records...</span>
-                    </div>
-                )}
-            </>
-         )}
-      </div>
-      
-      {isModalOpen && (
-          <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md flex items-end sm:items-center justify-center z-[100] p-0 sm:p-4">
-             <div className="bg-white rounded-t-[2.5rem] sm:rounded-3xl shadow-2xl max-w-2xl w-full p-6 sm:p-8 max-h-[92vh] overflow-y-auto border border-slate-200">
-                <div className="flex justify-between items-center mb-8">
-                    <div><h3 className="text-2xl font-black text-slate-800 tracking-tight">{editingStudent ? 'Edit Profile' : 'New Admission'}</h3><p className="text-xs text-slate-500 uppercase font-bold mt-1">Academic Cycle 2024-25</p></div>
-                    <button onClick={() => setIsModalOpen(false)} className="p-3 text-slate-400 hover:bg-slate-100 rounded-full transition-colors"><X size={24}/></button>
-                </div>
-                <div className="space-y-8 pb-10">
-                    <section className="space-y-5">
-                        <div className="flex items-center gap-2 border-b border-slate-100 pb-2"><GraduationCap size={18} className="text-indigo-600"/><h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Personal Details</h4></div>
-                        <div><label className="block text-xs font-black text-slate-500 uppercase mb-2 ml-1">Student Full Name</label><input type="text" value={name} onChange={(e) => setName(e.target.value)} className={`w-full px-5 py-4 bg-slate-50 border-2 rounded-2xl text-base font-bold outline-none focus:ring-4 focus:ring-indigo-50 ${errors.name ? 'border-rose-400' : 'border-slate-100 focus:border-indigo-500'}`} placeholder="e.g. Rahul Patil"/></div>
-                        <div className="grid grid-cols-2 gap-4">
-                             <div><label className="block text-xs font-black text-slate-500 uppercase mb-2 ml-1">Roll No</label><input type="number" value={rollNo} onChange={(e) => setRollNo(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-base font-bold outline-none focus:border-indigo-500"/></div>
-                             <div><label className="block text-xs font-black text-slate-500 uppercase mb-2 ml-1">Primary Phone</label><input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-base font-bold outline-none focus:border-indigo-500" placeholder="10 Digits"/></div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredStudents.length === 0 ? (
+            <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-dashed border-slate-300 text-slate-300 italic font-bold uppercase tracking-widest">No Students Found</div>
+        ) : (
+            filteredStudents.map(student => (
+                <div key={student.id} className={`bg-white rounded-2xl border transition-all ${expandedStudentId === student.id ? 'border-indigo-500 ring-4 ring-indigo-50 shadow-xl' : 'border-slate-200 hover:border-slate-300 shadow-sm'}`}>
+                    <div className="p-4 flex items-center gap-4 cursor-pointer" onClick={() => setExpandedStudentId(expandedStudentId === student.id ? null : student.id)}>
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm ${expandedStudentId === student.id ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400'}`}>{student.rollNo}</div>
+                        <div className="flex-1 overflow-hidden">
+                            <h3 className="font-black text-slate-800 text-sm truncate uppercase">{student.name}</h3>
+                            <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-[10px] font-black bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded uppercase">{student.className} ({(student.medium || 'English')})</span>
+                            </div>
                         </div>
-                    </section>
+                        <ChevronDown size={18} className={`text-slate-300 transition-transform ${expandedStudentId === student.id ? 'rotate-180 text-indigo-500' : ''}`} />
+                    </div>
+                    {expandedStudentId === student.id && (
+                        <div className="px-5 pb-5 pt-2 animate-in slide-in-from-top-2 duration-300">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100 text-[11px] font-bold">
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2 text-slate-600"><Calendar size={14} className="text-slate-400" /> DOB: {student.dob || 'N/A'}</div>
+                                    <div className="flex items-center gap-2 text-slate-600"><Phone size={14} className="text-slate-400" /> {student.phone}</div>
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="flex items-start gap-2 text-slate-600"><MapPin size={14} className="text-slate-400 mt-0.5" /> <span className="line-clamp-2">{student.address || 'No Address'}</span></div>
+                                </div>
+                            </div>
+                            <div className="mt-5 flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
+                                <button onClick={() => editStudent(student)} className="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg text-[10px] font-black uppercase tracking-wider">Edit</button>
+                                <button onClick={() => deleteStudent(student.id)} className="px-4 py-2 bg-rose-50 text-rose-700 rounded-lg text-[10px] font-black uppercase tracking-wider">Delete</button>
+                            </div>
+                        </div>
+                    )}
                 </div>
-                <div className="sticky bottom-0 bg-white pt-4 pb-2 border-t border-slate-100 flex gap-3">
-                    <button onClick={() => setIsModalOpen(false)} className="flex-1 py-4 text-slate-500 bg-slate-100 rounded-2xl font-black text-xs uppercase tracking-widest">Cancel</button>
-                    <button onClick={handleSave} className="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all">{editingStudent ? 'Update Profile' : 'Confirm Admission'}</button>
-                </div>
-             </div>
-          </div>
+            ))
+        )}
+      </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+            <div className="bg-white rounded-[2rem] shadow-2xl max-w-2xl w-full my-auto animate-in zoom-in-95 duration-200 overflow-hidden border border-slate-200">
+                <form onSubmit={handleAddStudent} className="flex flex-col max-h-[90vh]">
+                    <div className="bg-slate-50 p-6 border-b border-slate-200 flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-indigo-600 text-white p-2.5 rounded-2xl shadow-lg"><GraduationCap size={24} /></div>
+                            <div><h3 className="text-xl font-black text-slate-800 tracking-tight">Student Admission</h3><p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Session 2024-25</p></div>
+                        </div>
+                        <button type="button" onClick={() => setIsModalOpen(false)} className="p-2.5 hover:bg-slate-200 rounded-full text-slate-400 transition-colors"><X size={24} /></button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-8 space-y-8 no-scrollbar">
+                        <section className="space-y-4">
+                            <h4 className="text-[11px] font-black text-indigo-600 uppercase tracking-widest flex items-center gap-2"><ShieldCheck size={14} /> Identity</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+                                <div className="sm:col-span-8">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">Student Name</label>
+                                    <input type="text" value={formData.name} onChange={(e) => handleInputChange('name', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:ring-4 focus:ring-indigo-500/5 outline-none" required />
+                                </div>
+                                <div className="sm:col-span-4">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">Roll No</label>
+                                    <input type="text" value={formData.rollNo} onChange={(e) => handleInputChange('rollNo', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-center focus:ring-4 focus:ring-indigo-500/5 outline-none" required />
+                                </div>
+                                <div className="sm:col-span-12">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">Class & Medium</label>
+                                    <select value={formData.className ? `${formData.className}|${formData.medium || 'English'}` : ''} onChange={(e) => { const [cls, med] = e.target.value.split('|'); handleInputChange('className', cls); handleInputChange('medium', med); }} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none">
+                                        {SPECIFIC_CLASSES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+                        </section>
+                        <section className="space-y-4">
+                            <h4 className="text-[11px] font-black text-indigo-600 uppercase tracking-widest flex items-center gap-2"><MapPin size={14} /> Contact</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div><label className="block text-[10px] font-black text-slate-400 uppercase mb-2">Phone</label><input type="tel" value={formData.phone} onChange={(e) => handleInputChange('phone', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none" required /></div>
+                                <div className="sm:col-span-2"><label className="block text-[10px] font-black text-slate-400 uppercase mb-2">Address</label><textarea value={formData.address} onChange={(e) => handleInputChange('address', e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none min-h-[80px]" /></div>
+                            </div>
+                        </section>
+                    </div>
+                    <div className="p-8 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+                        <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-3 text-slate-500 hover:bg-slate-200 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">Cancel</button>
+                        <button type="submit" className="px-10 py-3 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 active:scale-95 transition-all">{formData.id ? 'Save Changes' : 'Confirm Admission'}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
       )}
     </div>
   );

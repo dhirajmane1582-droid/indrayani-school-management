@@ -7,7 +7,7 @@ export interface CustomFieldDefinition {
 export interface Holiday {
   id: string;
   date: string;
-  endDate?: string; // Optional end date for ranges
+  endDate?: string;
   name: string;
 }
 
@@ -50,14 +50,14 @@ export interface Exam {
   id: string;
   title: string;
   type: '1st Unit Test' | '1st Semester' | '2nd Unit Test' | '2nd Semester' | 'Annual' | 'Class Test' | 'Other';
-  date: string; // Keep as start date
+  date: string;
   className: string;
   published?: boolean; 
   customMaxMarks?: { [subjectId: string]: number };
   customEvaluationTypes?: { [subjectId: string]: 'marks' | 'grade' };
   activeSubjectIds?: string[];
   customSubjects?: Subject[];
-  timetable?: TimetableEntry[]; // New field for detailed schedule
+  timetable?: TimetableEntry[];
 }
 
 export interface StudentResult {
@@ -66,7 +66,7 @@ export interface StudentResult {
   examId: string;
   marks: { [subjectId: string]: number | string };
   aiRemark?: string;
-  published?: boolean; // New field to control visibility of marks
+  published?: boolean;
 }
 
 export interface AnnualRecord {
@@ -77,12 +77,12 @@ export interface AnnualRecord {
   sem2Grades?: { [subjectName: string]: string };
   remarks: string;
   hobbies: string;
-  hobbiesSem1?: string; // Split fields
+  hobbiesSem1?: string;
   hobbiesSem2?: string;
   improvements: string;
-  improvementsSem1?: string; // Split fields
+  improvementsSem1?: string;
   improvementsSem2?: string;
-  customSubjects: string[]; // List of subject names active for this student
+  customSubjects: string[];
   subjectOrder?: string[];
   medium?: 'English' | 'Semi';
   published?: boolean;
@@ -104,7 +104,7 @@ export interface Announcement {
   date: string;
   title: string;
   content: string;
-  targetClass?: string; // Optional: "Class 10" or "All"
+  targetClass?: string;
 }
 
 export type TabView = 'home' | 'students' | 'attendance' | 'exams' | 'results' | 'annual' | 'fees' | 'users' | 'promotion' | 'homework' | 'notices';
@@ -117,7 +117,7 @@ export interface User {
   password: string;
   name: string;
   role: UserRole;
-  linkedStudentId?: string; // ID of the student profile if role is 'student'
+  linkedStudentId?: string;
 }
 
 export interface FeeRecord {
@@ -167,7 +167,6 @@ export const SPECIFIC_CLASSES: ClassOption[] = [
   { value: 'Jr. KG|Semi', label: 'Jr. KG (Semi)' },
   { value: 'Sr. KG|English', label: 'Sr. KG (English)' },
   { value: 'Sr. KG|Semi', label: 'Sr. KG (Semi)' },
-  // Include all classes from 1 to 10
   ...Array.from({ length: 10 }, (_, i) => i + 1).flatMap(i => [
     { value: `Class ${i}|English`, label: `Class ${i} (English)` },
     { value: `Class ${i}|Semi`, label: `Class ${i} (Semi)` },
